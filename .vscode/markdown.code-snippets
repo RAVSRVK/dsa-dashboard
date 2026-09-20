@@ -1,0 +1,37 @@
+{
+  "DSA problem": {
+    "scope": "markdown",
+    "isFileTemplate": true,
+    "prefix": "dsa-problem",
+    "description": "Template for a solved DSA problem",
+    "body": [
+      "# ${1:Problem number}. ${2:Problem name}",
+      "",
+      "**Link:** [${3:LeetCode}](https://leetcode.com/problems/${4:problem-slug}/)",
+      "**Difficulty:** ${5|Easy,Medium,Hard|}",
+      "**Date solved:** ${CURRENT_YEAR}-${CURRENT_MONTH}-${CURRENT_DATE}",
+      "**Pattern:** ${6:Two Pointers}",
+      "",
+      "---",
+      "",
+      "## Key idea",
+      "${7:What is the one idea I need to remember?}",
+      "",
+      "## Code",
+      "```javascript",
+      "${8:Paste final code here}",
+      "```",
+      "",
+      "## Complexity",
+      "- **Time:** ${9:O(...)}",
+      "- **Space:** ${10:O(...)}",
+      "",
+      "## Remember",
+      "${11:What mistake or failed approach should I remember?}",
+      "",
+      "## Revisit",
+      "- [ ] Redo without looking",
+      ""
+    ]
+  }
+}
