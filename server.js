@@ -30,8 +30,11 @@ function problemTitle(slug) {
 function markdownContent(data, dateSolved) {
   const title = problemTitle(data.name);
   const iterations = Array.isArray(data.iterations) ? data.iterations : [];
+  const columns = Array.isArray(data.iterationColumns) && data.iterationColumns.length
+    ? data.iterationColumns
+    : [{ id: 'variables', label: 'Variables state' }, { id: 'observation', label: 'Observation' }, { id: 'notes', label: 'Notes or changes' }];
   const iterationTable = iterations.length
-    ? `| Iteration | Variables state | Observation | Notes or changes |\n| --- | --- | --- | --- |\n${iterations.map((item, index) => `| ${index + 1} | ${(item.variables || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')} | ${(item.observation || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')} | ${(item.notes || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')} |`).join('\n')}`
+    ? `| Iteration | ${columns.map(column => column.label.replace(/\|/g, '\\|')).join(' | ')} |\n| --- | ${columns.map(() => '---').join(' | ')} |\n${iterations.map((item, index) => `| ${index + 1} | ${columns.map(column => String(item[column.id] || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')).join(' | ')} |`).join('\n')}`
     : '_Add iterations while doing the dry run._';
   return `# ${title}\n\n**Slug:** ${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Dry run\n\n${iterationTable}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
 }

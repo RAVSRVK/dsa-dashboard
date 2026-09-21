@@ -1,6 +1,15 @@
 import { useEffect, useState } from "react";
 import "./App.css";
 
+const defaultIterationColumns = [
+  { id: "variables", label: "Variables state" },
+  { id: "observation", label: "Observation" },
+  { id: "notes", label: "Notes or changes" },
+];
+
+const blankIteration = (columns = defaultIterationColumns) =>
+  Object.fromEntries(columns.map((column) => [column.id, ""]));
+
 function App() {
   const [entries, setEntries] = useState([]);
   const [selected, setSelected] = useState(null);
@@ -15,7 +24,8 @@ function App() {
     pattern: "",
     description: "",
     keyIdea: "",
-    iterations: [{ variables: "", observation: "", notes: "" }],
+    iterationColumns: defaultIterationColumns,
+    iterations: [blankIteration()],
     code: "",
     time: "",
     space: "",
@@ -67,7 +77,8 @@ function App() {
       pattern: "",
       description: "",
       keyIdea: "",
-      iterations: [{ variables: "", observation: "", notes: "" }],
+      iterationColumns: defaultIterationColumns,
+      iterations: [blankIteration()],
       code: "",
       time: "",
       space: "",
@@ -85,7 +96,15 @@ function App() {
         .match(new RegExp(`## ${name}\\s+([\\s\\S]*?)(?=\\n## |$)`, "i"))?.[1]
         .replace(/```javascript|```/g, "")
         .trim() || "";
-    const iterations = [...content.matchAll(/^\|\s*\d+\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|$/gm)].map((match) => ({ variables: match[1].replace(/<br>/g, "\n"), observation: match[2].replace(/<br>/g, "\n"), notes: match[3].replace(/<br>/g, "\n") }));
+    const dryRun = section("Dry run");
+    const tableRows = dryRun.split("\n").filter((line) => line.trim().startsWith("|"));
+    const tableHeaders = tableRows[0]?.split("|").slice(1, -1).map((header) => header.trim()) || [];
+    const parsedColumns = tableHeaders.slice(1).map((label) => ({ id: label.toLowerCase().replace(/[^a-z0-9]+/g, "-") || `column-${Math.random()}`, label }));
+    const columns = parsedColumns.length ? parsedColumns : defaultIterationColumns;
+    const iterations = tableRows.slice(2).map((line) => {
+      const cells = line.split("|").slice(1, -1).map((cell) => cell.trim().replace(/<br>/g, "\n"));
+      return Object.fromEntries(columns.map((column, index) => [column.id, cells[index + 1] || ""]));
+    });
     setEditing(selected);
     setForm({
       name: slug,
@@ -94,7 +113,8 @@ function App() {
       pattern: value("Pattern"),
       description: section("Problem in my own words"),
       keyIdea: section("Key idea"),
-      iterations: iterations.length ? iterations : [{ variables: "", observation: "", notes: "" }],
+      iterationColumns: columns,
+      iterations: iterations.length ? iterations : [blankIteration(columns)],
       code: section("Code"),
       time: section("Complexity").match(/Time:\*\*\s*(.*)/i)?.[1] || "",
       space: section("Complexity").match(/Space:\*\*\s*(.*)/i)?.[1] || "",
@@ -138,13 +158,27 @@ function App() {
   const addIteration = () =>
     setForm((current) => ({
       ...current,
-      iterations: [...current.iterations, { variables: "", observation: "", notes: "" }],
+      iterations: [...current.iterations, blankIteration(current.iterationColumns)],
     }));
   const removeIteration = (index) =>
     setForm((current) => ({
       ...current,
       iterations: current.iterations.length === 1 ? current.iterations : current.iterations.filter((_, itemIndex) => itemIndex !== index),
     }));
+  const addIterationColumn = () =>
+    setForm((current) => {
+      const id = `column-${current.iterationColumns.length + 1}`;
+      const column = { id, label: `Column ${current.iterationColumns.length + 1}` };
+      return { ...current, iterationColumns: [...current.iterationColumns, column], iterations: current.iterations.map((item) => ({ ...item, [id]: "" })) };
+    });
+  const updateIterationColumn = (index, label) =>
+    setForm((current) => ({ ...current, iterationColumns: current.iterationColumns.map((column, columnIndex) => columnIndex === index ? { ...column, label } : column) }));
+  const removeIterationColumn = (index) =>
+    setForm((current) => {
+      if (current.iterationColumns.length === 1) return current;
+      const columnId = current.iterationColumns[index].id;
+      return { ...current, iterationColumns: current.iterationColumns.filter((_, columnIndex) => columnIndex !== index), iterations: current.iterations.map((item) => { const next = { ...item }; delete next[columnId]; return next; }) };
+    });
   const deleteProblem = async () => {
     if (!selected || !window.confirm(`Delete ${selected.name.replace(/\.md$/i, "")}? This cannot be undone.`)) return;
     await fetch("/api/problems", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: selected.path }) });
@@ -256,6 +290,9 @@ function App() {
           onIterationChange={updateIteration}
           onAddIteration={addIteration}
           onRemoveIteration={removeIteration}
+          onAddColumn={addIterationColumn}
+          onUpdateColumn={updateIterationColumn}
+          onRemoveColumn={removeIterationColumn}
         />
       )}
     </>
@@ -283,8 +320,10 @@ function Note({ file, onEdit, onDelete }) {
         const [heading, ...lines] = section.split("\n");
         const value = lines.join("\n").trim();
         if (heading.toLowerCase() === "dry run") {
-          const rows = [...value.matchAll(/^\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|$/gm)];
-          return <section key={heading}><h3>{heading}</h3><div className="dry-run-table"><div className="dry-run-row dry-run-header"><span>Iteration</span><span>Variables state</span><span>Observation</span><span>Notes or changes</span></div>{rows.map((row) => <div className="dry-run-row" key={row[1]}><span>{row[1]}</span><span>{row[2].replace(/<br>/g, "\n")}</span><span>{row[3].replace(/<br>/g, "\n")}</span><span>{row[4].replace(/<br>/g, "\n")}</span></div>)}</div></section>;
+          const tableRows = value.split("\n").filter((line) => line.trim().startsWith("|"));
+          const headers = tableRows[0]?.split("|").slice(1, -1).map((cell) => cell.trim()) || [];
+          const rows = tableRows.slice(2).map((line) => line.split("|").slice(1, -1).map((cell) => cell.trim().replace(/<br>/g, "\n")));
+          return <section key={heading}><h3>{heading}</h3><div className="dry-run-table" style={{ "--iteration-columns": `85px repeat(${Math.max(headers.length - 1, 1)}, minmax(180px, 1fr))` }}><div className="dry-run-row dry-run-header">{headers.map((header) => <span key={header}>{header}</span>)}</div>{rows.map((row, index) => <div className="dry-run-row" key={index}>{row.map((cell, cellIndex) => <span key={cellIndex}>{cell}</span>)}</div>)}</div></section>;
         }
         return heading.toLowerCase() === "code" ? (
           <pre key={heading}>
@@ -300,7 +339,7 @@ function Note({ file, onEdit, onDelete }) {
     </article>
   );
 }
-function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration }) {
+function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onAddColumn, onUpdateColumn, onRemoveColumn }) {
   return (
     <div className="modal">
       <form onSubmit={onSubmit}>
@@ -342,10 +381,11 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
             <legend>Dry-run iterations</legend>
             <p className="field-help">Capture what changed after each pass through the example.</p>
             <div className="iteration-table">
-              <div className="iteration-row iteration-header"><span>Iteration</span><span>Variables state</span><span>Observation</span><span>Notes or changes</span><span aria-hidden="true"></span></div>
-              {values.iterations.map((iteration, index) => <div className="iteration-row" key={index}><strong>{index + 1}</strong>{["variables", "observation", "notes"].map((field) => <textarea key={field} value={iteration[field]} onChange={(event) => onIterationChange(index, field, event.target.value)} placeholder={field === "variables" ? "left=0, right=1" : field === "observation" ? "What do I observe?" : "What changed?"} />)}<button type="button" className="remove-iteration" onClick={() => onRemoveIteration(index)} disabled={values.iterations.length === 1} aria-label={`Remove iteration ${index + 1}`}>×</button></div>)}
+              <div className="iteration-table-scroll"><div className="iteration-row iteration-header" style={{ gridTemplateColumns: `85px repeat(${values.iterationColumns.length}, minmax(180px, 1fr)) 32px` }}><span>Iteration</span>{values.iterationColumns.map((column, index) => <span className="column-heading" key={column.id}><input value={column.label} onChange={(event) => onUpdateColumn(index, event.target.value)} aria-label={`Column ${index + 1} name`} /><button type="button" onClick={() => onRemoveColumn(index)} disabled={values.iterationColumns.length === 1} aria-label={`Remove ${column.label}`}>×</button></span>)}<span aria-hidden="true"></span></div>
+              {values.iterations.map((iteration, index) => <div className="iteration-row" style={{ gridTemplateColumns: `85px repeat(${values.iterationColumns.length}, minmax(180px, 1fr)) 32px` }} key={index}><strong>{index + 1}</strong>{values.iterationColumns.map((column) => <textarea key={column.id} value={iteration[column.id] || ""} onChange={(event) => onIterationChange(index, column.id, event.target.value)} placeholder={`Add ${column.label.toLowerCase()}`} />)}<button type="button" className="remove-iteration" onClick={() => onRemoveIteration(index)} disabled={values.iterations.length === 1} aria-label={`Remove iteration ${index + 1}`}>×</button></div>)}</div>
             </div>
             <button type="button" className="add-iteration" onClick={onAddIteration}>+ Add iteration</button>
+            <button type="button" className="add-iteration" onClick={onAddColumn}>+ Add column</button>
           </fieldset>
           <label>
             Folder
