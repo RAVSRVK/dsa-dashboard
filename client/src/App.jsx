@@ -10,22 +10,23 @@ function App() {
   const [remindersOpen, setRemindersOpen] = useState(false);
   const [form, setForm] = useState({
     name: "",
-    number: "",
     folder: "",
-    link: "",
     difficulty: "Easy",
     pattern: "",
+    description: "",
     keyIdea: "",
+    iterations: [{ variables: "", observation: "", notes: "" }],
     code: "",
     time: "",
     space: "",
     remember: "",
   });
 
-  const loadEntries = async () =>
-    setEntries(
-      (await fetch("/api/tree").then((response) => response.json())).entries,
-    );
+  const loadEntries = async () => {
+    const nextEntries = (await fetch("/api/tree").then((response) => response.json())).entries;
+    setEntries(nextEntries);
+    return nextEntries;
+  };
   useEffect(() => {
     loadEntries();
   }, []);
@@ -61,12 +62,12 @@ function App() {
     setEditing(null);
     setForm({
       name: "",
-      number: "",
       folder: "",
-      link: "",
       difficulty: "Easy",
       pattern: "",
+      description: "",
       keyIdea: "",
+      iterations: [{ variables: "", observation: "", notes: "" }],
       code: "",
       time: "",
       space: "",
@@ -76,7 +77,7 @@ function App() {
   };
   const startEdit = () => {
     const content = selected.content;
-    const title = content.match(/^#\s+(?:(\d+)\.\s+)?(.+)$/m);
+    const slug = content.match(/^\*\*Slug:\*\*\s*(.*)$/im)?.[1] || selected.name.replace(/\.md$/i, "");
     const value = (name) =>
       content.match(new RegExp(`\\*\\*${name}:\\*\\*\\s*(.*)`, "i"))?.[1] || "";
     const section = (name) =>
@@ -84,15 +85,16 @@ function App() {
         .match(new RegExp(`## ${name}\\s+([\\s\\S]*?)(?=\\n## |$)`, "i"))?.[1]
         .replace(/```javascript|```/g, "")
         .trim() || "";
+    const iterations = [...content.matchAll(/^\|\s*\d+\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|$/gm)].map((match) => ({ variables: match[1].replace(/<br>/g, "\n"), observation: match[2].replace(/<br>/g, "\n"), notes: match[3].replace(/<br>/g, "\n") }));
     setEditing(selected);
     setForm({
-      name: title?.[2] || "",
-      number: title?.[1] || "",
+      name: slug,
       folder: selected.path.split("/").slice(0, -1).join("/"),
-      link: value("Link"),
       difficulty: value("Difficulty"),
       pattern: value("Pattern"),
+      description: section("Problem in my own words"),
       keyIdea: section("Key idea"),
+      iterations: iterations.length ? iterations : [{ variables: "", observation: "", notes: "" }],
       code: section("Code"),
       time: section("Complexity").match(/Time:\*\*\s*(.*)/i)?.[1] || "",
       space: section("Complexity").match(/Space:\*\*\s*(.*)/i)?.[1] || "",
@@ -124,9 +126,26 @@ function App() {
       }),
     });
     setFormOpen(false);
-    await loadEntries();
-    const refreshed = entries.find((entry) => entry.path === saved.path);
+    const nextEntries = await loadEntries();
+    const refreshed = nextEntries.find((entry) => entry.path === saved.path);
     if (refreshed) openFile(refreshed);
+  };
+  const updateIteration = (index, field, value) =>
+    setForm((current) => ({
+      ...current,
+      iterations: current.iterations.map((item, itemIndex) => itemIndex === index ? { ...item, [field]: value } : item),
+    }));
+  const addIteration = () =>
+    setForm((current) => ({
+      ...current,
+      iterations: [...current.iterations, { variables: "", observation: "", notes: "" }],
+    }));
+  const deleteProblem = async () => {
+    if (!selected || !window.confirm(`Delete ${selected.name.replace(/\.md$/i, "")}? This cannot be undone.`)) return;
+    await fetch("/api/problems", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: selected.path }) });
+    await fetch("/api/git/commit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: `Delete: ${selected.name.replace(/\.md$/i, "")}` }) });
+    setSelected(null);
+    await loadEntries();
   };
 
   return (
@@ -204,7 +223,7 @@ function App() {
         </aside>
         <section className="content">
           {selected ? (
-            <Note file={selected} onEdit={startEdit} />
+            <Note file={selected} onEdit={startEdit} onDelete={deleteProblem} />
           ) : (
             <div className="empty">
               <span>01</span>
@@ -229,23 +248,23 @@ function App() {
           onChange={updateField}
           onSubmit={save}
           onClose={() => setFormOpen(false)}
+          onIterationChange={updateIteration}
+          onAddIteration={addIteration}
         />
       )}
     </>
   );
 }
 
-function Note({ file, onEdit }) {
-  const title =
-    file.content.match(/^#\s+(?:(\d+)\.\s+)?(.+)$/m)?.[2] ||
-    file.name.replace(".md", "");
+function Note({ file, onEdit, onDelete }) {
+  const title = file.content.match(/^#\s+(.+)$/m)?.[1] || file.name.replace(".md", "");
   const sections = file.content.split(/^## /m).slice(1);
   return (
     <article className="note">
       <small>{file.path}</small>
       <div className="note-title">
         <h2>{title}</h2>
-        <button onClick={onEdit}>Edit</button>
+        <div className="note-actions"><button onClick={onEdit}>Edit</button><button className="delete-button" onClick={onDelete}>Delete</button></div>
       </div>
       <div className="meta">
         {file.content
@@ -257,6 +276,10 @@ function Note({ file, onEdit }) {
       {sections.map((section) => {
         const [heading, ...lines] = section.split("\n");
         const value = lines.join("\n").trim();
+        if (heading.toLowerCase() === "dry run") {
+          const rows = [...value.matchAll(/^\|\s*(\d+)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|\s*(.*?)\s*\|$/gm)];
+          return <section key={heading}><h3>{heading}</h3><div className="dry-run-table"><div className="dry-run-row dry-run-header"><span>Iteration</span><span>Variables state</span><span>Observation</span><span>Notes or changes</span></div>{rows.map((row) => <div className="dry-run-row" key={row[1]}><span>{row[1]}</span><span>{row[2].replace(/<br>/g, "\n")}</span><span>{row[3].replace(/<br>/g, "\n")}</span><span>{row[4].replace(/<br>/g, "\n")}</span></div>)}</div></section>;
+        }
         return heading.toLowerCase() === "code" ? (
           <pre key={heading}>
             <code>{value.replace(/```javascript|```/g, "").trim()}</code>
@@ -271,7 +294,7 @@ function Note({ file, onEdit }) {
     </article>
   );
 }
-function Form({ values, folders, editing, onChange, onSubmit, onClose }) {
+function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration }) {
   return (
     <div className="modal">
       <form onSubmit={onSubmit}>
@@ -283,9 +306,8 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose }) {
         <div className="fields">
           {[
             ["name", "Problem name"],
-            ["number", "Problem number (optional)"],
-            ["link", "LeetCode link"],
             ["pattern", "Pattern"],
+            ["description", "Problem in my own words"],
             ["keyIdea", "Key idea"],
             ["code", "Code"],
             ["time", "Time"],
@@ -294,7 +316,7 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose }) {
           ].map(([name, label]) => (
             <label key={name}>
               {label}
-              {name === "keyIdea" || name === "code" || name === "remember" ? (
+              {name === "description" || name === "keyIdea" || name === "code" || name === "remember" ? (
                 <textarea
                   name={name}
                   value={values[name]}
@@ -310,6 +332,15 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose }) {
               )}
             </label>
           ))}
+          <fieldset className="iterations-fieldset">
+            <legend>Dry-run iterations</legend>
+            <p className="field-help">Capture what changed after each pass through the example.</p>
+            <div className="iteration-table">
+              <div className="iteration-row iteration-header"><span>Iteration</span><span>Variables state</span><span>Observation</span><span>Notes or changes</span></div>
+              {values.iterations.map((iteration, index) => <div className="iteration-row" key={index}><strong>{index + 1}</strong>{["variables", "observation", "notes"].map((field) => <textarea key={field} value={iteration[field]} onChange={(event) => onIterationChange(index, field, event.target.value)} placeholder={field === "variables" ? "left=0, right=1" : field === "observation" ? "What do I observe?" : "What changed?"} />)}</div>)}
+            </div>
+            <button type="button" className="add-iteration" onClick={onAddIteration}>+ Add iteration</button>
+          </fieldset>
           <label>
             Folder
             <select name="folder" value={values.folder} onChange={onChange}>

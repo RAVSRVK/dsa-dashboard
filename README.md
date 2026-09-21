@@ -21,7 +21,7 @@ You can:
 - receive seven-day revisit reminders;
 - stage and commit new or updated notes through Git.
 
-The problem name is used for the filename. The problem URL is stored as metadata inside the note. A problem number is optional.
+Use the LeetCode problem slug as the problem name and filename, for example `remove-duplicates-from-sorted-array.md`. The LeetCode URL does not need to be stored because the slug identifies the problem. The form also captures a short description in your own words.
 
 ## Current architecture
 
@@ -108,10 +108,9 @@ Run `npm run lint` to check the React code with Oxlint. The `client/.oxlintrc.js
 ## Typical workflow
 
 1. Click **New problem**.
-2. Enter a readable problem name, such as `Kth largest integer`.
-3. Paste the LeetCode URL.
-4. Choose a difficulty, pattern, and folder.
-5. Add the key idea, final code, complexity, and reminder.
+2. Enter the problem slug, such as `remove-duplicates-from-sorted-array`.
+3. Choose a difficulty, pattern, and folder.
+4. Add the problem description, key idea, dry-run iterations, final code, complexity, and reminder.
 6. Save the problem.
 7. The app creates the Markdown file, stages it, and commits it.
 8. Push to GitHub when you are ready.
@@ -123,16 +122,26 @@ For an existing note, select it from the sidebar and click **Edit**. Search by n
 Generated notes use a short format focused on recall:
 
 ~~~~md
-# Kth largest integer
+# Remove Duplicates From Sorted Array
 
-**Link:** https://leetcode.com/problems/...
+**Slug:** remove-duplicates-from-sorted-array
 **Difficulty:** Easy
 **Date solved:** 2026-09-20
-**Pattern:** Sorting
+**Pattern:** Two pointers
+
+## Problem in my own words
+
+Keep each unique value in place and return the number of unique values.
 
 ## Key idea
 
 The idea worth remembering.
+
+## Dry run
+
+| Iteration | Variables state | Observation | Notes or changes |
+| --- | --- | --- | --- |
+| 1 | left=0, right=1 | Values are equal | Move right |
 
 ## Code
 

@@ -20,7 +20,20 @@ function safeRelativePath(relativePath) {
 }
 
 function problemFileName(name) {
-  return `${name.trim().replace(/[<>:"/\\|?*]+/g, '-').replace(/\s+/g, ' ')}.md`;
+  return `${name.trim().toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-+|-+$/g, '')}.md`;
+}
+
+function problemTitle(slug) {
+  return slug.trim().replace(/[-_]+/g, ' ').replace(/\b\w/g, character => character.toUpperCase());
+}
+
+function markdownContent(data, dateSolved) {
+  const title = problemTitle(data.name);
+  const iterations = Array.isArray(data.iterations) ? data.iterations : [];
+  const iterationTable = iterations.length
+    ? `| Iteration | Variables state | Observation | Notes or changes |\n| --- | --- | --- | --- |\n${iterations.map((item, index) => `| ${index + 1} | ${(item.variables || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')} | ${(item.observation || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')} | ${(item.notes || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')} |`).join('\n')}`
+    : '_Add iterations while doing the dry run._';
+  return `# ${title}\n\n**Slug:** ${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Dry run\n\n${iterationTable}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
 }
 
 async function walk(currentDir, relativeDir = '') {
@@ -78,7 +91,7 @@ async function handleApi(request, response, pathname) {
 
   if (request.method === 'POST' && pathname === '/api/problems') {
     const data = await readJson(request);
-    const name = String(data.name || '').trim();
+    const name = String(data.name || '').trim().toLowerCase();
     const folder = String(data.folder || '').trim();
     if (!name) return send(response, 400, { error: 'Problem name is required.' });
 
@@ -91,8 +104,7 @@ async function handleApi(request, response, pathname) {
       return send(response, 409, { error: 'A problem with that name already exists in this folder.' });
     } catch {}
 
-    const title = data.number ? `${data.number}. ${name}` : name;
-    const content = `# ${title}\n\n**Link:** ${data.link || ''}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${new Date().toISOString().slice(0, 10)}\n**Pattern:** ${data.pattern || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
+    const content = markdownContent({ ...data, name }, new Date().toISOString().slice(0, 10));
     await fs.writeFile(targetFile, content, 'utf8');
     return send(response, 201, { path: relativeFile });
   }
@@ -101,11 +113,22 @@ async function handleApi(request, response, pathname) {
     const data = await readJson(request);
     const relativePath = String(data.path || '');
     const targetFile = safeRelativePath(relativePath);
-    const name = String(data.name || '').trim();
+    const name = String(data.name || '').trim().toLowerCase();
     if (!name) return send(response, 400, { error: 'Problem name is required.' });
-    const title = data.number ? `${data.number}. ${name}` : name;
-    const content = `# ${title}\n\n**Link:** ${data.link || ''}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${data.dateSolved || new Date().toISOString().slice(0, 10)}\n**Pattern:** ${data.pattern || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
+    const content = markdownContent({ ...data, name }, data.dateSolved || new Date().toISOString().slice(0, 10));
     await fs.writeFile(targetFile, content, 'utf8');
+    return send(response, 200, { path: relativePath });
+  }
+
+  if (request.method === 'DELETE' && pathname === '/api/problems') {
+    const data = await readJson(request);
+    const relativePath = String(data.path || '');
+    if (!relativePath.toLowerCase().endsWith('.md') || hiddenDocuments.has(path.basename(relativePath))) {
+      return send(response, 400, { error: 'Only problem notes can be deleted.' });
+    }
+    const targetFile = safeRelativePath(relativePath);
+    await fs.unlink(targetFile);
+    await git(['add', '-A', '--', relativePath]);
     return send(response, 200, { path: relativePath });
   }
 

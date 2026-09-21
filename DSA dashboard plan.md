@@ -114,6 +114,9 @@ Keep the React frontend, Node.js backend, dashboard code, and Markdown notes tog
 - Preview the generated note before saving.
 - Search problems from the left sidebar by name, path, or pattern.
 - Edit an existing note from the dashboard and preserve its original solved date.
+- Use the LeetCode slug as the filename and remove the redundant URL field.
+- Capture the problem in your own words instead of using a problem-number field.
+- Add a dry-run iterations table with variables state, observation, and notes or changes.
 - Separate Save, Stage, Commit, and Push actions when the workflow grows.
 - Optional database only when file-based data becomes insufficient.
 
