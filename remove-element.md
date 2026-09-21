@@ -47,10 +47,9 @@ Explanation: Your function should return k = 5, with the first five elements of 
 Note that the five elements can be returned in any order.
 It does not matter what you leave beyond the returned k (hence they are underscores).
 
-
 ## Key idea
 
-
+Instead of checking for when num === val, check when num !== val 
 
 ## Dry run
 
@@ -61,6 +60,16 @@ It does not matter what you leave beyond the returned k (hence they are undersco
 ## Code
 
 ```javascript
+var removeElement = function(nums, val) {
+    let p = 0
+    for(let i = 0; i< nums.length; i++){
+        if(nums[i] != val) {
+            nums[p] = nums[i]
+            p+=1
+        }
+    }
+    return p
+};
 
 ```
 
@@ -71,7 +80,9 @@ It does not matter what you leave beyond the returned k (hence they are undersco
 
 ## Remember
 
+## Revisit
 
+- [ ] Redo without looking
 
 ## Revisit
 
