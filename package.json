@@ -1,0 +1,12 @@
+{
+  "name": "dsa-dashboard",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Local dashboard for Markdown-based DSA practice",
+  "scripts": {
+    "start": "npm run build:client && node server.js",
+    "build:client": "npm --prefix client run build",
+    "dev:client": "npm --prefix client run dev",
+    "lint": "npm --prefix client run lint"
+  }
+}
