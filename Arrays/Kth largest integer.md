@@ -7,7 +7,12 @@
 
 ## Key idea
 
-Brute force - sort and find the k-1th element 
+Brute force - sort and find the k-1th element but O(nlogn) but sort compares strings 
+const numbers = [10, 5, 2, 100];
+numbers.sort(); 
+console.log(numbers); // Output: [10, 100, 2, 5] (because "10" comes before "2" alphabetically)
+
+Better solution - sort convert to bigint
 
 ## Code
 
