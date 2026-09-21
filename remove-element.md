@@ -49,7 +49,7 @@ It does not matter what you leave beyond the returned k (hence they are undersco
 
 ## Key idea
 
-Instead of checking for when num === val, check when num !== val 
+Instead of checking for when num === val, check when num !== val
 
 ## Dry run
 
@@ -70,12 +70,11 @@ var removeElement = function(nums, val) {
     }
     return p
 };
-
 ```
 
 ## Complexity
 
-- **Time:** 
+- **Time:** - **Space:**
 - **Space:** 
 
 ## Remember
