@@ -140,6 +140,11 @@ function App() {
       ...current,
       iterations: [...current.iterations, { variables: "", observation: "", notes: "" }],
     }));
+  const removeIteration = (index) =>
+    setForm((current) => ({
+      ...current,
+      iterations: current.iterations.length === 1 ? current.iterations : current.iterations.filter((_, itemIndex) => itemIndex !== index),
+    }));
   const deleteProblem = async () => {
     if (!selected || !window.confirm(`Delete ${selected.name.replace(/\.md$/i, "")}? This cannot be undone.`)) return;
     await fetch("/api/problems", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: selected.path }) });
@@ -250,6 +255,7 @@ function App() {
           onClose={() => setFormOpen(false)}
           onIterationChange={updateIteration}
           onAddIteration={addIteration}
+          onRemoveIteration={removeIteration}
         />
       )}
     </>
@@ -294,7 +300,7 @@ function Note({ file, onEdit, onDelete }) {
     </article>
   );
 }
-function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration }) {
+function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration }) {
   return (
     <div className="modal">
       <form onSubmit={onSubmit}>
@@ -336,8 +342,8 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
             <legend>Dry-run iterations</legend>
             <p className="field-help">Capture what changed after each pass through the example.</p>
             <div className="iteration-table">
-              <div className="iteration-row iteration-header"><span>Iteration</span><span>Variables state</span><span>Observation</span><span>Notes or changes</span></div>
-              {values.iterations.map((iteration, index) => <div className="iteration-row" key={index}><strong>{index + 1}</strong>{["variables", "observation", "notes"].map((field) => <textarea key={field} value={iteration[field]} onChange={(event) => onIterationChange(index, field, event.target.value)} placeholder={field === "variables" ? "left=0, right=1" : field === "observation" ? "What do I observe?" : "What changed?"} />)}</div>)}
+              <div className="iteration-row iteration-header"><span>Iteration</span><span>Variables state</span><span>Observation</span><span>Notes or changes</span><span aria-hidden="true"></span></div>
+              {values.iterations.map((iteration, index) => <div className="iteration-row" key={index}><strong>{index + 1}</strong>{["variables", "observation", "notes"].map((field) => <textarea key={field} value={iteration[field]} onChange={(event) => onIterationChange(index, field, event.target.value)} placeholder={field === "variables" ? "left=0, right=1" : field === "observation" ? "What do I observe?" : "What changed?"} />)}<button type="button" className="remove-iteration" onClick={() => onRemoveIteration(index)} disabled={values.iterations.length === 1} aria-label={`Remove iteration ${index + 1}`}>×</button></div>)}
             </div>
             <button type="button" className="add-iteration" onClick={onAddIteration}>+ Add iteration</button>
           </fieldset>
