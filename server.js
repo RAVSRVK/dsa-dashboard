@@ -43,7 +43,11 @@ function markdownContent(data, dateSolved) {
     return `### Example ${caseIndex + 1}\n\n**Input:** ${dryRunCase.input || ''}\n\n${table}`;
   };
   const iterationTables = cases.map(renderCase).join('\n\n');
-  return `# ${title}\n\n**Slug:** ${data.name}\n**Link:** https://leetcode.com/problems/${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Dry run\n\n${iterationTables}\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
+  const examples = Array.isArray(data.examples) ? data.examples : [];
+  const exampleMarkdown = examples.length
+    ? examples.map((example, index) => `### Example ${index + 1}\n\n- **Input:** ${example.input || ''}\n- **Output:** ${example.output || ''}\n- **Explanation:** ${example.explanation || ''}`).join('\n\n')
+    : '_Add the problem examples here._';
+  return `# ${title}\n\n**Slug:** ${data.name}\n**Link:** https://leetcode.com/problems/${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Examples\n\n${exampleMarkdown}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Dry run\n\n${iterationTables}\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
 }
 
 async function walk(currentDir, relativeDir = '') {

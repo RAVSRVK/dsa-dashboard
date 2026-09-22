@@ -31,6 +31,10 @@
 .remove-case { padding: 6px 9px; border: 1px solid #e9b4a6; background: transparent; color: #b44f3a; font: 11px monospace; }
 .dry-run-case h4 { margin: 0 0 8px; color: var(--green); font: 12px monospace; text-transform: uppercase; }
 .dry-run-input { color: var(--muted); font: 13px/1.5 Arial,sans-serif; }
+.examples-fieldset { grid-column: 1 / -1; min-width: 0; margin: 4px 0 0; padding: 16px; border: 1px solid var(--line); }
+.examples-fieldset legend { padding: 0 7px; color: var(--green); font: 12px monospace; text-transform: uppercase; }
+.problem-example + .problem-example { margin-top: 16px; padding-top: 14px; border-top: 1px solid var(--line); }
+.example-fields { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 @media(max-width:700px) { .compact-row,.complexity-row { grid-template-columns: 1fr; } }
 .pattern-control { display:grid; grid-template-columns:1fr auto; gap:8px; }
 .pattern-control select,.pattern-control input { min-width:0; }

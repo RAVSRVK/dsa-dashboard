@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import "./App.css";
-
 const defaultIterationColumns = [
   { id: "variables", label: "Variables state" },
   { id: "observation", label: "Observation" },
@@ -12,6 +11,7 @@ const complexityOptions = ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)", "
 const blankIteration = (columns = defaultIterationColumns) =>
   Object.fromEntries(columns.map((column) => [column.id, ""]));
 const blankCase = (columns = defaultIterationColumns) => ({ input: "", iterations: [blankIteration(columns)] });
+const blankProblemExample = () => ({ input: "", output: "", explanation: "" });
 
 function App() {
   const [entries, setEntries] = useState([]);
@@ -28,6 +28,7 @@ function App() {
     difficulty: "Easy",
     pattern: "",
     description: "",
+    examples: [blankProblemExample(), blankProblemExample()],
     keyIdea: "",
     iterationColumns: defaultIterationColumns,
     dryRunCases: [blankCase(), blankCase()],
@@ -92,6 +93,7 @@ function App() {
       difficulty: "Easy",
       pattern: "Two pointers",
       description: "",
+      examples: [blankProblemExample(), blankProblemExample()],
       keyIdea: "",
       iterationColumns: defaultIterationColumns,
       dryRunCases: [blankCase(), blankCase()],
@@ -113,6 +115,8 @@ function App() {
         .replace(/```javascript|```/g, "")
         .trim() || "";
     const dryRun = section("Dry run");
+    const examplesSection = section("Examples");
+    const examples = [...examplesSection.matchAll(/###\s+Example\s+\d+\s+([\s\S]*?)(?=\n###\s+Example|$)/gi)].map((match) => ({ input: match[1].match(/\*\*Input:\*\*\s*(.*)/i)?.[1] || "", output: match[1].match(/\*\*Output:\*\*\s*(.*)/i)?.[1] || "", explanation: match[1].match(/\*\*Explanation:\*\*\s*(.*)/i)?.[1] || "" }));
     const exampleBlocks = dryRun.split(/(?=###\s+Example\s+\d+)/i).filter(Boolean);
     const firstBlock = exampleBlocks[0] || dryRun;
     const tableRows = firstBlock.split("\n").filter((line) => line.trim().startsWith("|"));
@@ -132,6 +136,7 @@ function App() {
       difficulty: value("Difficulty"),
       pattern: value("Pattern"),
       description: section("Problem in my own words"),
+      examples: examples.length ? examples : [blankProblemExample(), blankProblemExample()],
       keyIdea: section("Key idea"),
       iterationColumns: columns,
       dryRunCases: parsedCases.map((dryRunCase) => ({ ...dryRunCase, iterations: dryRunCase.iterations.length ? dryRunCase.iterations : [blankIteration(columns)] })),
@@ -187,6 +192,9 @@ function App() {
   const updateCaseInput = (caseIndex, input) => setForm((current) => ({ ...current, dryRunCases: current.dryRunCases.map((dryRunCase, index) => index === caseIndex ? { ...dryRunCase, input } : dryRunCase) }));
   const addCase = () => setForm((current) => ({ ...current, dryRunCases: [...current.dryRunCases, blankCase(current.iterationColumns)] }));
   const removeCase = (caseIndex) => setForm((current) => ({ ...current, dryRunCases: current.dryRunCases.length > 1 ? current.dryRunCases.filter((_, index) => index !== caseIndex) : current.dryRunCases }));
+  const updateProblemExample = (index, field, value) => setForm((current) => ({ ...current, examples: current.examples.map((example, exampleIndex) => exampleIndex === index ? { ...example, [field]: value } : example) }));
+  const addProblemExample = () => setForm((current) => ({ ...current, examples: [...current.examples, blankProblemExample()] }));
+  const removeProblemExample = (index) => setForm((current) => ({ ...current, examples: current.examples.length > 1 ? current.examples.filter((_, exampleIndex) => exampleIndex !== index) : current.examples }));
   const addIterationColumn = () =>
     setForm((current) => {
       const id = `column-${current.iterationColumns.length + 1}`;
@@ -289,6 +297,9 @@ function App() {
           onCaseInputChange={updateCaseInput}
           onAddCase={addCase}
           onRemoveCase={removeCase}
+          onExampleChange={updateProblemExample}
+          onAddExample={addProblemExample}
+          onRemoveExample={removeProblemExample}
           onAddColumn={addIterationColumn}
           onUpdateColumn={updateIterationColumn}
           onRemoveColumn={removeIterationColumn}
@@ -380,7 +391,7 @@ function formatInlineMarkdown(value) {
     return part;
   });
 }
-function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onCaseInputChange, onAddCase, onRemoveCase, onAddColumn, onUpdateColumn, onRemoveColumn, patterns, onPatternChange }) {
+function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onCaseInputChange, onAddCase, onRemoveCase, onExampleChange, onAddExample, onRemoveExample, onAddColumn, onUpdateColumn, onRemoveColumn, patterns, onPatternChange }) {
   return (
     <div className="modal" onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
       <form onSubmit={onSubmit}>
@@ -417,6 +428,14 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
               )}
             </label>
           ))}
+          <fieldset className="examples-fieldset">
+            <legend>Problem examples</legend>
+            <p className="field-help">Understand the inputs and outputs before forming the approach.</p>
+            {values.examples.map((example, index) => <div className="problem-example" key={index}><div className="case-heading"><strong>Example {index + 1}</strong><button type="button" className="remove-case" onClick={() => onRemoveExample(index)} disabled={values.examples.length === 1}>Remove example</button></div><div className="example-fields"><label>Input<textarea value={example.input} onChange={(event) => onExampleChange(index, "input", event.target.value)} /></label><label>Output<textarea value={example.output} onChange={(event) => onExampleChange(index, "output", event.target.value)} /></label><label className="full-field">Explanation<textarea value={example.explanation} onChange={(event) => onExampleChange(index, "explanation", event.target.value)} /></label></div></div>)}
+            <button type="button" className="add-iteration" onClick={onAddExample}>+ Add example</button>
+          </fieldset>
+          <label className="keyIdea-field">Key idea<textarea name="keyIdea" value={values.keyIdea} onChange={onChange} /></label>
+          <label className="code-field">Code<textarea name="code" value={values.code} onChange={onChange} /></label>
           <fieldset className="iterations-fieldset">
             <legend>Dry-run examples</legend>
             <p className="field-help">Keep a separate input and iteration table for each example.</p>
