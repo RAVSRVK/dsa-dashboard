@@ -6,7 +6,7 @@ const defaultIterationColumns = [
   { id: "observation", label: "Observation" },
   { id: "notes", label: "Notes or changes" },
 ];
-const defaultPatterns = ["Two pointers", "Sliding window", "Hash map", "Sorting", "Binary search", "Stack", "Queue", "Tree BFS", "Tree DFS", "Dynamic programming", "Graph BFS", "Graph DFS"];
+const defaultPatterns = ["Two pointers"];
 const complexityOptions = ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)", "O(n + m)", "O(2ⁿ)", "Custom"];
 
 const blankIteration = (columns = defaultIterationColumns) =>
@@ -19,13 +19,12 @@ function App() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
-  const [patterns, setPatterns] = useState(() => [...defaultPatterns, ...(JSON.parse(localStorage.getItem("dsa-patterns") || "[]"))]);
   const [form, setForm] = useState({
     name: "",
     folder: "",
+    link: "",
     difficulty: "Easy",
     pattern: "",
-    customPattern: "",
     description: "",
     keyIdea: "",
     dryRunInput: "",
@@ -59,7 +58,7 @@ function App() {
       Date.now() - new Date(`${file.dateSolved}T00:00:00`).getTime() >=
         7 * 86400000,
   );
-  const availablePatterns = [...new Set([...patterns, ...files.map((file) => file.pattern).filter(Boolean)])];
+  const availablePatterns = [...new Set([...defaultPatterns, ...files.map((file) => file.pattern).filter(Boolean)])];
   const openFile = async (file) =>
     setSelected({
       ...file,
@@ -79,9 +78,9 @@ function App() {
     setForm({
       name: "",
       folder: "",
+      link: "",
       difficulty: "Easy",
-      pattern: "",
-      customPattern: "",
+      pattern: "Two pointers",
       description: "",
       keyIdea: "",
       dryRunInput: "",
@@ -117,9 +116,9 @@ function App() {
     setForm({
       name: slug,
       folder: selected.path.split("/").slice(0, -1).join("/"),
+      link: value("Link"),
       difficulty: value("Difficulty"),
       pattern: value("Pattern"),
-      customPattern: "",
       description: section("Problem in my own words"),
       keyIdea: section("Key idea"),
       dryRunInput: content.match(/\*\*Input:\*\*\s*(.*)/i)?.[1] || "",
@@ -134,7 +133,7 @@ function App() {
   };
   const save = async (event) => {
     event.preventDefault();
-    const payload = { ...form, pattern: form.pattern === "__custom__" ? form.customPattern : form.pattern, dateSolved: editing?.dateSolved };
+    const payload = { ...form, dateSolved: editing?.dateSolved };
     if (editing) payload.path = editing.path;
     const response = await fetch("/api/problems", {
       method: editing ? "PUT" : "POST",
@@ -195,15 +194,6 @@ function App() {
     setSelected(null);
     await loadEntries();
   };
-  const addPattern = () => {
-    const pattern = window.prompt("Pattern name");
-    if (!pattern?.trim()) return;
-    const next = [...new Set([...patterns, pattern.trim()])];
-    setPatterns(next);
-    localStorage.setItem("dsa-patterns", JSON.stringify(next));
-    setForm((current) => ({ ...current, pattern: pattern.trim(), customPattern: "" }));
-  };
-
   return (
     <>
       <header>
@@ -250,32 +240,7 @@ function App() {
               ))}
             </div>
           )}
-          <nav>
-            {visible
-              .filter((file) => !file.path.includes("/"))
-              .map((file) => (
-                <button key={file.path} onClick={() => openFile(file)}>
-                  {file.name.replace(".md", "")}
-                </button>
-              ))}
-            {folders.map((folder) => {
-              const folderFiles = visible.filter(
-                (file) =>
-                  file.path.startsWith(`${folder.path}/`) &&
-                  !file.path.slice(folder.path.length + 1).includes("/"),
-              );
-              return (
-                <details key={folder.path} open>
-                  <summary>{folder.path}</summary>
-                  {folderFiles.map((file) => (
-                    <button key={file.path} onClick={() => openFile(file)}>
-                      {file.name.replace(".md", "")}
-                    </button>
-                  ))}
-                </details>
-              );
-            })}
-          </nav>
+          <nav><ProblemTree files={visible} folders={folders} onOpen={openFile} /></nav>
         </aside>
         <section className="content">
           {selected ? (
@@ -311,11 +276,32 @@ function App() {
           onUpdateColumn={updateIterationColumn}
           onRemoveColumn={removeIterationColumn}
           patterns={availablePatterns}
-          onAddPattern={addPattern}
         />
       )}
     </>
   );
+}
+
+function ProblemTree({ files, folders, onOpen }) {
+  const renderGroup = (groupFiles) => {
+    const groups = [...new Set(groupFiles.map((file) => file.pattern || "Uncategorized"))];
+    return groups.map((pattern) => (
+      <details className="pattern-group" key={pattern} open>
+        <summary>{pattern}</summary>
+        {groupFiles.filter((file) => (file.pattern || "Uncategorized") === pattern).map((file) => (
+          <button key={file.path} onClick={() => onOpen(file)}>{file.name.replace(".md", "")}</button>
+        ))}
+      </details>
+    ));
+  };
+  return <>
+    {renderGroup(files.filter((file) => !file.path.includes("/")))}
+    {folders.map((folder) => {
+      const folderFiles = files.filter((file) => file.path.startsWith(`${folder.path}/`) && !file.path.slice(folder.path.length + 1).includes("/"));
+      if (!folderFiles.length) return null;
+      return <details key={folder.path} open><summary>{folder.path}</summary>{renderGroup(folderFiles)}</details>;
+    })}
+  </>;
 }
 
 function Note({ file, onEdit, onDelete }) {
@@ -332,7 +318,7 @@ function Note({ file, onEdit, onDelete }) {
         {file.content
           .match(/\*\*(Link|Difficulty|Date solved|Pattern):\*\*\s*(.*)/g)
           ?.map((item) => (
-            <span key={item}>{item.replaceAll("**", "")}</span>
+            <span key={item}>{item.startsWith("**Link:") ? <a href={item.replace(/^\*\*Link:\*\*\s*/i, "")} target="_blank" rel="noreferrer">Open LeetCode</a> : item.replaceAll("**", "")}</span>
           ))}
       </div>
       {sections.map((section) => {
@@ -358,9 +344,9 @@ function Note({ file, onEdit, onDelete }) {
     </article>
   );
 }
-function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onAddColumn, onUpdateColumn, onRemoveColumn, patterns, onAddPattern }) {
+function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onAddColumn, onUpdateColumn, onRemoveColumn, patterns }) {
   return (
-    <div className="modal">
+    <div className="modal" onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
       <form onSubmit={onSubmit}>
         <button type="button" className="close" onClick={onClose}>
           ×
@@ -368,14 +354,16 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
         <small>{editing ? "EDIT NOTE" : "NEW ENTRY"}</small>
         <h2>{editing ? "Update this problem" : "Capture a problem"}</h2>
         <div className="fields">
+          <div className="compact-fields">
+            <div className="compact-row"><label>Problem slug<input name="name" value={values.name} onChange={onChange} placeholder="remove-duplicates-from-sorted-array" required /></label><label>Pattern<select name="pattern" value={values.pattern} onChange={onChange}><option value="">Select pattern</option>{patterns.map((pattern) => <option key={pattern} value={pattern}>{pattern}</option>)}</select></label></div>
+            <div className="compact-row"><label>Difficulty<select name="difficulty" value={values.difficulty} onChange={onChange}><option>Easy</option><option>Medium</option><option>Hard</option></select></label><label>Folder<select name="folder" value={values.folder} onChange={onChange}><option value="">Root</option>{folders.map((folder) => <option key={folder.path} value={folder.path}>{folder.path}</option>)}</select></label></div>
+          </div>
           {[
-            ["name", "Problem name"],
             ["description", "Problem in my own words"],
             ["keyIdea", "Key idea"],
             ["code", "Code"],
-            ["remember", "Remember"],
           ].map(([name, label]) => (
-            <label key={name}>
+            <label className={`${name}-field`} key={name}>
               {label}
               {name === "description" || name === "keyIdea" || name === "code" || name === "remember" ? (
                 <textarea
@@ -393,11 +381,6 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
               )}
             </label>
           ))}
-          <label>Pattern
-            <div className="pattern-control"><select name="pattern" value={values.pattern} onChange={onChange}><option value="">Select pattern</option>{patterns.map((pattern) => <option key={pattern} value={pattern}>{pattern}</option>)}<option value="__custom__">+ Add new pattern</option></select>{values.pattern === "__custom__" && <input name="customPattern" value={values.customPattern} onChange={onChange} placeholder="New pattern name" />}<button type="button" className="add-pattern" onClick={onAddPattern}>+ Add new pattern</button></div>
-          </label>
-          <label>Time complexity<select name="time" value={values.time} onChange={onChange}>{complexityOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
-          <label>Space complexity<select name="space" value={values.space} onChange={onChange}>{complexityOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
           <fieldset className="iterations-fieldset">
             <legend>Dry-run iterations</legend>
             <p className="field-help">Capture what changed after each pass through the example.</p>
@@ -409,29 +392,8 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
             <button type="button" className="add-iteration" onClick={onAddIteration}>+ Add iteration</button>
             <button type="button" className="add-iteration" onClick={onAddColumn}>+ Add column</button>
           </fieldset>
-          <label>
-            Folder
-            <select name="folder" value={values.folder} onChange={onChange}>
-              <option value="">Root</option>
-              {folders.map((folder) => (
-                <option key={folder.path} value={folder.path}>
-                  {folder.path}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            Difficulty
-            <select
-              name="difficulty"
-              value={values.difficulty}
-              onChange={onChange}
-            >
-              <option>Easy</option>
-              <option>Medium</option>
-              <option>Hard</option>
-            </select>
-          </label>
+          <div className="complexity-row"><label>Time complexity<select name="time" value={values.time} onChange={onChange}>{complexityOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label><label>Space complexity<select name="space" value={values.space} onChange={onChange}>{complexityOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label></div>
+          <label className="full-field">Remember<textarea name="remember" value={values.remember} onChange={onChange} /></label>
         </div>
         <button className="save">
           {editing ? "Save changes" : "Save problem"}
