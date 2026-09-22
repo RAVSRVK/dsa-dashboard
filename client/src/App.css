@@ -18,9 +18,19 @@
 .compact-fields { display: grid; grid-template-columns: 1fr; gap: 12px; }
 .compact-row { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
 .code-field { grid-column: 1 / -1; }
+.description-field,.keyIdea-field,.code-field,.full-field { grid-column: 1 / -1; }
+.markdown-content p { margin: 0 0 14px; white-space: normal; }
+.markdown-content ul { margin: 0 0 14px; padding-left: 22px; }
+.markdown-content strong { color: var(--ink); }
+.inline-code { padding: 2px 5px; background: #e5e8df; font-family: monospace; font-size: .9em; }
 .iterations-fieldset { grid-column: 1 / -1; }
 .complexity-row { grid-column: 1 / -1; display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
 .full-field { grid-column: 1 / -1; }
+.dry-run-case { margin-top: 18px; padding-top: 14px; border-top: 1px solid var(--line); }
+.case-heading { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; color: var(--green); }
+.remove-case { padding: 6px 9px; border: 1px solid #e9b4a6; background: transparent; color: #b44f3a; font: 11px monospace; }
+.dry-run-case h4 { margin: 0 0 8px; color: var(--green); font: 12px monospace; text-transform: uppercase; }
+.dry-run-input { color: var(--muted); font: 13px/1.5 Arial,sans-serif; }
 @media(max-width:700px) { .compact-row,.complexity-row { grid-template-columns: 1fr; } }
 .pattern-control { display:grid; grid-template-columns:1fr auto; gap:8px; }
 .pattern-control select,.pattern-control input { min-width:0; }

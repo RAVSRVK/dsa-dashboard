@@ -29,14 +29,21 @@ function problemTitle(slug) {
 
 function markdownContent(data, dateSolved) {
   const title = problemTitle(data.name);
-  const iterations = Array.isArray(data.iterations) ? data.iterations : [];
   const columns = Array.isArray(data.iterationColumns) && data.iterationColumns.length
     ? data.iterationColumns
     : [{ id: 'variables', label: 'Variables state' }, { id: 'observation', label: 'Observation' }, { id: 'notes', label: 'Notes or changes' }];
-  const iterationTable = iterations.length
-    ? `| Iteration | ${columns.map(column => column.label.replace(/\|/g, '\\|')).join(' | ')} |\n| --- | ${columns.map(() => '---').join(' | ')} |\n${iterations.map((item, index) => `| ${index + 1} | ${columns.map(column => String(item[column.id] || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')).join(' | ')} |`).join('\n')}`
-    : '_Add iterations while doing the dry run._';
-  return `# ${title}\n\n**Slug:** ${data.name}\n**Link:** https://leetcode.com/problems/${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Dry run\n\n**Input:** ${data.dryRunInput || ''}\n\n${iterationTable}\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
+  const cases = Array.isArray(data.dryRunCases) && data.dryRunCases.length
+    ? data.dryRunCases
+    : [{ input: data.dryRunInput || '', iterations: Array.isArray(data.iterations) ? data.iterations : [] }];
+  const renderCase = (dryRunCase, caseIndex) => {
+    const iterations = Array.isArray(dryRunCase.iterations) ? dryRunCase.iterations : [];
+    const table = iterations.length
+      ? `| Iteration | ${columns.map(column => column.label.replace(/\|/g, '\\|')).join(' | ')} |\n| --- | ${columns.map(() => '---').join(' | ')} |\n${iterations.map((item, index) => `| ${index + 1} | ${columns.map(column => String(item[column.id] || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')).join(' | ')} |`).join('\n')}`
+      : '_Add iterations for this example._';
+    return `### Example ${caseIndex + 1}\n\n**Input:** ${dryRunCase.input || ''}\n\n${table}`;
+  };
+  const iterationTables = cases.map(renderCase).join('\n\n');
+  return `# ${title}\n\n**Slug:** ${data.name}\n**Link:** https://leetcode.com/problems/${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Dry run\n\n${iterationTables}\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
 }
 
 async function walk(currentDir, relativeDir = '') {
