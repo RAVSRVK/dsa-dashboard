@@ -1,13 +1,14 @@
 # Remove Element
 
 **Slug:** remove-element
+**Link:** https://leetcode.com/problems/remove-element
 **Difficulty:** Easy
 **Date solved:** 2026-09-21
 **Pattern:** Two Pointers
 
 ## Problem in my own words
 
-Given an integer array nums and an integer val, remove all occurrences of val in nums **in-place**. The order of the elements may be changed. Then return the number of elements in nums which are not equal to val.
+Given an integer array nums and an integer val, remove all occurrences of val in nums *in-place*. The order of the elements may be changed. Then return the number of elements in nums which are not equal to val.
 
 Consider the number of elements in nums which are not equal to val be k, to get accepted, you need to do the following things:
 
@@ -51,14 +52,6 @@ It does not matter what you leave beyond the returned k (hence they are undersco
 
 Instead of checking for when num === val, check when num !== val
 
-## Dry run
-
-**Input:** 
-
-| Iteration | Variables state | Observation | Notes or changes |
-| --- | --- | --- | --- |
-| 1 |  |  |  |
-
 ## Code
 
 ```javascript
@@ -74,10 +67,18 @@ var removeElement = function(nums, val) {
 };
 ```
 
+## Dry run
+
+**Input:** | Iteration | Variables state | Observation | Notes or changes |
+
+| Iteration | Variables state | Observation | Notes or changes |
+| --- | --- | --- | --- |
+| 1 |  |  |  |
+
 ## Complexity
 
 - **Time:** - **Space:**
-- **Space:** - **Space:** - **Space:**
+- **Space:** - **Space:** - **Space:** - **Space:**
 
 ## Remember
 
