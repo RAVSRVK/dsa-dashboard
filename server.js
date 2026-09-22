@@ -36,7 +36,7 @@ function markdownContent(data, dateSolved) {
   const iterationTable = iterations.length
     ? `| Iteration | ${columns.map(column => column.label.replace(/\|/g, '\\|')).join(' | ')} |\n| --- | ${columns.map(() => '---').join(' | ')} |\n${iterations.map((item, index) => `| ${index + 1} | ${columns.map(column => String(item[column.id] || '').replace(/\|/g, '\\|').replace(/\n/g, '<br>')).join(' | ')} |`).join('\n')}`
     : '_Add iterations while doing the dry run._';
-  return `# ${title}\n\n**Slug:** ${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Dry run\n\n${iterationTable}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
+  return `# ${title}\n\n**Slug:** ${data.name}\n**Difficulty:** ${data.difficulty || 'Easy'}\n**Date solved:** ${dateSolved}\n**Pattern:** ${data.pattern || ''}\n\n## Problem in my own words\n\n${data.description || ''}\n\n## Key idea\n\n${data.keyIdea || ''}\n\n## Dry run\n\n**Input:** ${data.dryRunInput || ''}\n\n${iterationTable}\n\n## Code\n\n\`\`\`javascript\n${data.code || ''}\n\`\`\`\n\n## Complexity\n\n- **Time:** ${data.time || ''}\n- **Space:** ${data.space || ''}\n\n## Remember\n\n${data.remember || ''}\n\n## Revisit\n\n- [ ] Redo without looking\n`;
 }
 
 async function walk(currentDir, relativeDir = '') {
@@ -115,12 +115,18 @@ async function handleApi(request, response, pathname) {
   if (request.method === 'PUT' && pathname === '/api/problems') {
     const data = await readJson(request);
     const relativePath = String(data.path || '');
-    const targetFile = safeRelativePath(relativePath);
     const name = String(data.name || '').trim().toLowerCase();
     if (!name) return send(response, 400, { error: 'Problem name is required.' });
     const content = markdownContent({ ...data, name }, data.dateSolved || new Date().toISOString().slice(0, 10));
+    const folder = String(data.folder || path.dirname(relativePath)).trim();
+    const nextRelativePath = path.join(folder, problemFileName(name)).replaceAll(path.sep, '/');
+    const targetFile = safeRelativePath(nextRelativePath);
+    const currentFile = safeRelativePath(relativePath);
+    await fs.mkdir(path.dirname(targetFile), { recursive: true });
+    if (currentFile !== targetFile) await fs.rename(currentFile, targetFile);
     await fs.writeFile(targetFile, content, 'utf8');
-    return send(response, 200, { path: relativePath });
+    await git(['add', '-A', '--', relativePath, nextRelativePath]);
+    return send(response, 200, { path: nextRelativePath });
   }
 
   if (request.method === 'DELETE' && pathname === '/api/problems') {

@@ -18,6 +18,9 @@ You can:
 - view code in a readable code panel;
 - copy code or the complete note;
 - edit an existing problem;
+- move a problem to another folder while editing;
+- choose patterns and complexity values from form controls;
+- add custom dry-run columns and a shared dry-run input;
 - receive seven-day revisit reminders;
 - stage and commit new or updated notes through Git.
 

@@ -6,6 +6,8 @@ const defaultIterationColumns = [
   { id: "observation", label: "Observation" },
   { id: "notes", label: "Notes or changes" },
 ];
+const defaultPatterns = ["Two pointers", "Sliding window", "Hash map", "Sorting", "Binary search", "Stack", "Queue", "Tree BFS", "Tree DFS", "Dynamic programming", "Graph BFS", "Graph DFS"];
+const complexityOptions = ["O(1)", "O(log n)", "O(n)", "O(n log n)", "O(n²)", "O(n + m)", "O(2ⁿ)", "Custom"];
 
 const blankIteration = (columns = defaultIterationColumns) =>
   Object.fromEntries(columns.map((column) => [column.id, ""]));
@@ -17,13 +19,16 @@ function App() {
   const [formOpen, setFormOpen] = useState(false);
   const [editing, setEditing] = useState(null);
   const [remindersOpen, setRemindersOpen] = useState(false);
+  const [patterns, setPatterns] = useState(() => [...defaultPatterns, ...(JSON.parse(localStorage.getItem("dsa-patterns") || "[]"))]);
   const [form, setForm] = useState({
     name: "",
     folder: "",
     difficulty: "Easy",
     pattern: "",
+    customPattern: "",
     description: "",
     keyIdea: "",
+    dryRunInput: "",
     iterationColumns: defaultIterationColumns,
     iterations: [blankIteration()],
     code: "",
@@ -54,6 +59,7 @@ function App() {
       Date.now() - new Date(`${file.dateSolved}T00:00:00`).getTime() >=
         7 * 86400000,
   );
+  const availablePatterns = [...new Set([...patterns, ...files.map((file) => file.pattern).filter(Boolean)])];
   const openFile = async (file) =>
     setSelected({
       ...file,
@@ -75,8 +81,10 @@ function App() {
       folder: "",
       difficulty: "Easy",
       pattern: "",
+      customPattern: "",
       description: "",
       keyIdea: "",
+      dryRunInput: "",
       iterationColumns: defaultIterationColumns,
       iterations: [blankIteration()],
       code: "",
@@ -111,8 +119,10 @@ function App() {
       folder: selected.path.split("/").slice(0, -1).join("/"),
       difficulty: value("Difficulty"),
       pattern: value("Pattern"),
+      customPattern: "",
       description: section("Problem in my own words"),
       keyIdea: section("Key idea"),
+      dryRunInput: content.match(/\*\*Input:\*\*\s*(.*)/i)?.[1] || "",
       iterationColumns: columns,
       iterations: iterations.length ? iterations : [blankIteration(columns)],
       code: section("Code"),
@@ -124,9 +134,8 @@ function App() {
   };
   const save = async (event) => {
     event.preventDefault();
-    const payload = editing
-      ? { ...form, path: editing.path, dateSolved: editing.dateSolved }
-      : form;
+    const payload = { ...form, pattern: form.pattern === "__custom__" ? form.customPattern : form.pattern, dateSolved: editing?.dateSolved };
+    if (editing) payload.path = editing.path;
     const response = await fetch("/api/problems", {
       method: editing ? "PUT" : "POST",
       headers: { "Content-Type": "application/json" },
@@ -185,6 +194,14 @@ function App() {
     await fetch("/api/git/commit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: `Delete: ${selected.name.replace(/\.md$/i, "")}` }) });
     setSelected(null);
     await loadEntries();
+  };
+  const addPattern = () => {
+    const pattern = window.prompt("Pattern name");
+    if (!pattern?.trim()) return;
+    const next = [...new Set([...patterns, pattern.trim()])];
+    setPatterns(next);
+    localStorage.setItem("dsa-patterns", JSON.stringify(next));
+    setForm((current) => ({ ...current, pattern: pattern.trim(), customPattern: "" }));
   };
 
   return (
@@ -293,6 +310,8 @@ function App() {
           onAddColumn={addIterationColumn}
           onUpdateColumn={updateIterationColumn}
           onRemoveColumn={removeIterationColumn}
+          patterns={availablePatterns}
+          onAddPattern={addPattern}
         />
       )}
     </>
@@ -339,7 +358,7 @@ function Note({ file, onEdit, onDelete }) {
     </article>
   );
 }
-function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onAddColumn, onUpdateColumn, onRemoveColumn }) {
+function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onAddColumn, onUpdateColumn, onRemoveColumn, patterns, onAddPattern }) {
   return (
     <div className="modal">
       <form onSubmit={onSubmit}>
@@ -351,12 +370,9 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
         <div className="fields">
           {[
             ["name", "Problem name"],
-            ["pattern", "Pattern"],
             ["description", "Problem in my own words"],
             ["keyIdea", "Key idea"],
             ["code", "Code"],
-            ["time", "Time"],
-            ["space", "Space"],
             ["remember", "Remember"],
           ].map(([name, label]) => (
             <label key={name}>
@@ -377,9 +393,15 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
               )}
             </label>
           ))}
+          <label>Pattern
+            <div className="pattern-control"><select name="pattern" value={values.pattern} onChange={onChange}><option value="">Select pattern</option>{patterns.map((pattern) => <option key={pattern} value={pattern}>{pattern}</option>)}<option value="__custom__">+ Add new pattern</option></select>{values.pattern === "__custom__" && <input name="customPattern" value={values.customPattern} onChange={onChange} placeholder="New pattern name" />}<button type="button" className="add-pattern" onClick={onAddPattern}>+ Add new pattern</button></div>
+          </label>
+          <label>Time complexity<select name="time" value={values.time} onChange={onChange}>{complexityOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
+          <label>Space complexity<select name="space" value={values.space} onChange={onChange}>{complexityOptions.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>
           <fieldset className="iterations-fieldset">
             <legend>Dry-run iterations</legend>
             <p className="field-help">Capture what changed after each pass through the example.</p>
+            <label>Input used for dry run<input name="dryRunInput" value={values.dryRunInput} onChange={onChange} placeholder="[0, 0, 1, 1, 2]" /></label>
             <div className="iteration-table">
               <div className="iteration-table-scroll"><div className="iteration-row iteration-header" style={{ gridTemplateColumns: `85px repeat(${values.iterationColumns.length}, minmax(180px, 1fr)) 32px` }}><span>Iteration</span>{values.iterationColumns.map((column, index) => <span className="column-heading" key={column.id}><input value={column.label} onChange={(event) => onUpdateColumn(index, event.target.value)} aria-label={`Column ${index + 1} name`} /><button type="button" onClick={() => onRemoveColumn(index)} disabled={values.iterationColumns.length === 1} aria-label={`Remove ${column.label}`}>×</button></span>)}<span aria-hidden="true"></span></div>
               {values.iterations.map((iteration, index) => <div className="iteration-row" style={{ gridTemplateColumns: `85px repeat(${values.iterationColumns.length}, minmax(180px, 1fr)) 32px` }} key={index}><strong>{index + 1}</strong>{values.iterationColumns.map((column) => <textarea key={column.id} value={iteration[column.id] || ""} onChange={(event) => onIterationChange(index, column.id, event.target.value)} placeholder={`Add ${column.label.toLowerCase()}`} />)}<button type="button" className="remove-iteration" onClick={() => onRemoveIteration(index)} disabled={values.iterations.length === 1} aria-label={`Remove iteration ${index + 1}`}>×</button></div>)}</div>
