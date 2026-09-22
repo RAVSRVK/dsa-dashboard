@@ -12,22 +12,18 @@ Write a function that reverses a string. The input string is given as an array o
 
 You must do this by modifying the input array in-place with O(1) extra memory.
 
-
-
 ## Examples
 
 ### Example 1
 
 - **Input:** ["h","e","l","l","o"]
-
 - **Output:** ["o","l","l","e","h"]
-
 - **Explanation:** Just reverse it
 
 ## Key idea
 
 Run loop as per len of arr//2
-keep a pointer at end and loop and swap the elements 
+keep a pointer at end and loop and swap the elements
 
 ## Code
 
@@ -42,18 +38,18 @@ var reverseString = function(s) {
         s[lastKey] = temp 
     }
 };
-
 ```
 
 ## Dry run
 
 ### Example 1
 
-**Input:** 
+**Input:** ["h","e","l","l","o"] |
 
-| Iteration | Variables state | Observation | Notes or changes |
-| --- | --- | --- | --- |
-| 1 |  |  |  |
+| Iteration | Variables state | Observation |
+| --- | --- | --- |
+| 1 |  s.length = 5 <br>i=0<br>lastkey = 5-0-1 | elements swapped - h and o |
+| 2 |  s.length = 5 <br>i=1<br>lastkey = 5-1-1 | Elements swapped - e and l |
 
 ## Complexity
 
@@ -62,7 +58,9 @@ var reverseString = function(s) {
 
 ## Remember
 
+## Revisit
 
+- [ ] Redo without looking
 
 ## Revisit
 
