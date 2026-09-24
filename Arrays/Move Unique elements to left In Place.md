@@ -3,7 +3,7 @@
 **Link:** https://leetcode.com/problems/remove-duplicates-from-sorted-array
 **Difficulty:** Easy
 **Date solved:** 2026-09-21
-**Pattern:** Two Pointers
+**Pattern:** Two pointers
 
 ## Key idea
 

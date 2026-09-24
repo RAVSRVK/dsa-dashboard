@@ -4,7 +4,7 @@
 **Link:** https://leetcode.com/problems/remove-element
 **Difficulty:** Easy
 **Date solved:** 2026-09-21
-**Pattern:** Two Pointers
+**Pattern:** Two pointers
 
 ## Problem in my own words
 

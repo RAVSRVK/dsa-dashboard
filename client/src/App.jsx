@@ -407,8 +407,6 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
           </div>
           {[
             ["description", "Problem in my own words"],
-            ["keyIdea", "Key idea"],
-            ["code", "Code"],
           ].map(([name, label]) => (
             <label className={`${name}-field`} key={name}>
               {label}
