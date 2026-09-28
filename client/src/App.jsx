@@ -84,6 +84,26 @@ function App() {
     localStorage.setItem("dsa-patterns", JSON.stringify(next.filter((item) => !defaultPatterns.includes(item))));
     setForm((current) => ({ ...current, pattern: pattern.trim() }));
   };
+  const updateFolder = async (event) => {
+    if (event.target.value !== "__add_folder__") {
+      setForm((current) => ({ ...current, folder: event.target.value }));
+      return;
+    }
+    const name = window.prompt("New folder name");
+    if (!name?.trim()) return;
+    const response = await fetch("/api/folders", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ name: name.trim() }),
+    });
+    const result = await response.json();
+    if (!response.ok) {
+      window.alert(result.error || "Unable to create folder.");
+      return;
+    }
+    await loadEntries();
+    setForm((current) => ({ ...current, folder: result.path }));
+  };
   const startNew = () => {
     setEditing(null);
     setForm({
@@ -305,6 +325,7 @@ function App() {
           onRemoveColumn={removeIterationColumn}
           patterns={availablePatterns}
           onPatternChange={updatePattern}
+          onFolderChange={updateFolder}
         />
       )}
     </>
@@ -391,7 +412,7 @@ function formatInlineMarkdown(value) {
     return part;
   });
 }
-function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onCaseInputChange, onAddCase, onRemoveCase, onExampleChange, onAddExample, onRemoveExample, onAddColumn, onUpdateColumn, onRemoveColumn, patterns, onPatternChange }) {
+function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterationChange, onAddIteration, onRemoveIteration, onCaseInputChange, onAddCase, onRemoveCase, onExampleChange, onAddExample, onRemoveExample, onAddColumn, onUpdateColumn, onRemoveColumn, patterns, onPatternChange, onFolderChange }) {
   return (
     <div className="modal" onKeyDown={(event) => { if (event.key === "Escape") onClose(); }}>
       <form onSubmit={onSubmit}>
@@ -403,7 +424,7 @@ function Form({ values, folders, editing, onChange, onSubmit, onClose, onIterati
         <div className="fields">
           <div className="compact-fields">
             <div className="compact-row"><label>Problem slug<input name="name" value={values.name} onChange={onChange} placeholder="remove-duplicates-from-sorted-array" required /></label><label>Pattern<select name="pattern" value={values.pattern} onChange={onPatternChange}><option value="">Select pattern</option>{patterns.map((pattern) => <option key={pattern} value={pattern}>{pattern}</option>)}<option value="__add_pattern__">+ Add new pattern</option></select></label></div>
-            <div className="compact-row"><label>Difficulty<select name="difficulty" value={values.difficulty} onChange={onChange}><option>Easy</option><option>Medium</option><option>Hard</option></select></label><label>Folder<select name="folder" value={values.folder} onChange={onChange}><option value="">Root</option>{folders.map((folder) => <option key={folder.path} value={folder.path}>{folder.path}</option>)}</select></label></div>
+            <div className="compact-row"><label>Difficulty<select name="difficulty" value={values.difficulty} onChange={onChange}><option>Easy</option><option>Medium</option><option>Hard</option></select></label><label>Folder<select name="folder" value={values.folder} onChange={onFolderChange}><option value="">Root</option>{folders.map((folder) => <option key={folder.path} value={folder.path}>{folder.path}</option>)}<option value="__add_folder__">+ Create new folder</option></select></label></div>
           </div>
           {[
             ["description", "Problem in my own words"],

@@ -89,6 +89,7 @@ The first phase is a local React and Node.js application stored in one GitHub re
 - Use the LeetCode slug as the filename, such as `remove-duplicates-from-sorted-array.md`.
 - Generate the LeetCode URL automatically from the slug.
 - Select a difficulty, folder, and pattern.
+- Create a new folder from the folder dropdown, then immediately add problems to it.
 - Use `Two pointers` as the initial pattern and add new patterns from the dropdown when needed.
 - Write the problem in your own words.
 - Add multiple problem examples with input, output, and explanation.
@@ -167,6 +168,19 @@ The dashboard should be able to prefill problem information when a user enters a
 ### Risks and fallback
 
 LeetCode may block automated requests, rate-limit the server, require dynamic requests, or change its page structure. Fetched content must therefore be previewed and editable. If direct fetching is unreliable, add a manual paste/import option or use a stable problem-data API instead.
+
+## Folder Creation (Implemented)
+
+The folder dropdown includes an explicit **Create new folder** option, similar to adding a new pattern. Selecting it prompts for a folder name, creates the directory, and selects it for the current problem.
+
+### Proposed flow
+
+1. Choose **Create new folder** from the folder control.
+2. Enter the folder name.
+3. Create the matching directory under the DSA workspace.
+4. Make the new folder available immediately when adding or moving problems, so problems can be saved there.
+
+The existing folder structure and Markdown files remain the source of truth.
 
 ## React migration steps
 

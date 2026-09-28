@@ -96,6 +96,22 @@ async function handleApi(request, response, pathname) {
     return send(response, 200, { entries: await walk(root) });
   }
 
+  if (request.method === 'POST' && pathname === '/api/folders') {
+    const data = await readJson(request);
+    const name = String(data.name || '').trim();
+    if (!name || name.startsWith('.') || name === '.' || name === '..' || /[<>:"/\\|?*\x00-\x1f]/.test(name)) {
+      return send(response, 400, { error: 'Enter a valid folder name.' });
+    }
+    const folderPath = safeRelativePath(name);
+    try {
+      await fs.mkdir(folderPath);
+    } catch (error) {
+      if (error.code === 'EEXIST') return send(response, 409, { error: 'A folder with that name already exists.' });
+      throw error;
+    }
+    return send(response, 201, { path: name });
+  }
+
   if (request.method === 'GET' && pathname === '/api/file') {
     const requestUrl = new URL(request.url, `http://${request.headers.host}`);
     const relativePath = requestUrl.searchParams.get('path') || '';
