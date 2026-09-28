@@ -79,17 +79,94 @@ The exact structure can be adjusted after the new repository is shared.
 
 Keep the React frontend, Node.js backend, dashboard code, and Markdown notes together as one application and one repository for now. This keeps setup simple and makes each feature change easy to test with the notes it manages. Consider hosting it later only if remote access, multiple devices, sharing, or accounts become useful. A database or separate frontend/backend deployments can be introduced at that point if the file-based model is no longer enough.
 
-## First version
+## Phase 1: Current Application
 
-- Browse folders and Markdown files.
-- Show problem counts.
-- Create a problem from a form.
-- Treat the problem number as optional because many useful identifiers are only names and URLs.
-- Choose or create the destination folder.
-- Generate a short Markdown note.
-- Stage the created file.
-- Commit with `Solve: <problem name>`.
-- Open existing notes from the dashboard.
+The first phase is a local React and Node.js application stored in one GitHub repository. Markdown files remain the source of truth.
+
+### Problem creation and editing
+
+- Create a problem from the dashboard.
+- Use the LeetCode slug as the filename, such as `remove-duplicates-from-sorted-array.md`.
+- Generate the LeetCode URL automatically from the slug.
+- Select a difficulty, folder, and pattern.
+- Use `Two pointers` as the initial pattern and add new patterns from the dropdown when needed.
+- Write the problem in your own words.
+- Add multiple problem examples with input, output, and explanation.
+- Add a key idea, code, complexity, and remember notes.
+- Edit existing problems without resetting their original solved date.
+- Move a problem when its folder changes.
+- Delete a problem with confirmation.
+
+### Dry-run learning workflow
+
+- Keep multiple dry-run examples by default.
+- Give every dry-run example its own input.
+- Record multiple iterations for each input.
+- Use configurable columns such as variables state, observation, and notes or changes.
+- Add or remove examples, iterations, and columns.
+- Save dry-run data as Markdown tables.
+
+### Dashboard workflow
+
+- Browse the existing folders as a nested tree.
+- Group problems by pattern inside each folder.
+- Collapse folders and pattern groups.
+- Search by problem name, folder, or pattern.
+- View structured Markdown instead of raw file text.
+- Show code blocks, Markdown formatting, examples, complexity, and dry-run tables clearly.
+- Open the generated LeetCode link while viewing a problem.
+- Show seven-day revisit reminders and open a problem from a reminder.
+
+### Git workflow
+
+- Stage created, edited, moved, or deleted notes.
+- Commit changes with generated messages such as `Solve: <problem name>` or `Update: <problem name>`.
+- Keep pushing to GitHub as a deliberate user action.
+
+### Current project structure
+
+```text
+dsa-dashboard/
+├── client/       # React and Vite dashboard
+├── server.js      # Node.js API, filesystem, and Git operations
+├── Arrays/       # Markdown notes and problem folders
+├── README.md
+└── DSA dashboard plan.md
+```
+
+## Phase 2: Fetch Problem Details (Pending)
+
+The dashboard should be able to prefill problem information when a user enters a LeetCode slug or URL.
+
+### Proposed flow
+
+1. Enter a slug or LeetCode URL.
+2. Click **Fetch problem details**.
+3. The Node.js server fetches the available LeetCode problem data.
+4. Preview the fetched information before saving.
+5. Allow every fetched field to be edited.
+6. Save the final Markdown note only after confirmation.
+
+### Fields that may be fetched
+
+- Problem title.
+- Problem description.
+- Examples with input, output, and explanation.
+- Difficulty.
+- LeetCode URL generated from the slug.
+
+### Fields that remain user-owned
+
+- Pattern.
+- Key idea.
+- Dry-run inputs and iterations.
+- Code.
+- Time and space complexity.
+- Mistakes and remember notes.
+
+### Risks and fallback
+
+LeetCode may block automated requests, rate-limit the server, require dynamic requests, or change its page structure. Fetched content must therefore be previewed and editable. If direct fetching is unreliable, add a manual paste/import option or use a stable problem-data API instead.
 
 ## React migration steps
 
@@ -101,7 +178,7 @@ Keep the React frontend, Node.js backend, dashboard code, and Markdown notes tog
 6. Keep stage and commit actions on the Node.js side.
 7. Add tests for file creation, path safety, reminders, and Git actions.
 
-## Ideas to keep
+## Future Ideas
 
 - Seven-day revisit reminders with a notification panel.
 - Click a reminder to open the problem note.
@@ -114,13 +191,6 @@ Keep the React frontend, Node.js backend, dashboard code, and Markdown notes tog
 - Preview the generated note before saving.
 - Search problems from the left sidebar by name, path, or pattern.
 - Edit an existing note from the dashboard and preserve its original solved date.
-- Use the LeetCode slug as the filename and remove the redundant URL field.
-- Capture the problem in your own words instead of using a problem-number field.
-- Add a dry-run iterations table with variables state, observation, and notes or changes.
-- Select a reusable pattern from a dropdown or add a new pattern.
-- Add one dry-run input value above the iterations table.
-- Select time and space complexity from standard dropdown values.
-- Move an existing problem when its folder is changed during editing.
 - Separate Save, Stage, Commit, and Push actions when the workflow grows.
 - Optional database only when file-based data becomes insufficient.
 
