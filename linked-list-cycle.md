@@ -14,25 +14,38 @@ There is a cycle in a linked list if there is some node in the list that can be 
 
 Return true if there is a cycle in the linked list. Otherwise, return false.
 
-
-
 ## Examples
 
 ### Example 1
 
-- **Input:** 
-- **Output:** 
+- **Input:** - **Output:** 
+- **Output:** - **Explanation:** 
 - **Explanation:** 
 
 ### Example 2
 
-- **Input:** 
-- **Output:** 
+- **Input:** - **Output:** 
+- **Output:** - **Explanation:**
 - **Explanation:** 
 
 ## Key idea
 
+## Code
 
+
+var hasCycle = function(head) {
+    let p = new Set()
+    let curr = head
+    while(curr !==null) {
+        if(p.has(curr)) {
+            return true
+        }
+        p.add(curr)
+        curr = curr.next
+
+    }
+    return false
+};
 
 ## Code
 
@@ -56,7 +69,7 @@ var hasCycle = function(head) {
 
 ### Example 1
 
-**Input:** 
+**Input:** | Iteration | Variables state | Observation | Notes or changes |
 
 | Iteration | Variables state | Observation | Notes or changes |
 | --- | --- | --- | --- |
@@ -64,7 +77,7 @@ var hasCycle = function(head) {
 
 ### Example 2
 
-**Input:** 
+**Input:** | Iteration | Variables state | Observation | Notes or changes |
 
 | Iteration | Variables state | Observation | Notes or changes |
 | --- | --- | --- | --- |
@@ -72,12 +85,14 @@ var hasCycle = function(head) {
 
 ## Complexity
 
-- **Time:** 
-- **Space:** 
+- **Time:** O(n)
+- **Space:** O(n)
 
 ## Remember
 
+## Revisit
 
+- [ ] Redo without looking
 
 ## Revisit
 
