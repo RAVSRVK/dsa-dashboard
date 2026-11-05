@@ -8,6 +8,7 @@ const execFileAsync = promisify(execFile);
 const root = __dirname;
 const clientDist = path.join(root, 'client', 'dist');
 const port = Number(process.env.PORT) || 3000;
+const gitAutomationEnabled = process.env.ENABLE_GIT_AUTOMATION !== 'false';
 const hiddenDocuments = new Set(['README.md', 'DSA dashboard plan.md']);
 
 function safeRelativePath(relativePath) {
@@ -92,6 +93,10 @@ function send(response, status, data, contentType = 'application/json') {
 }
 
 async function handleApi(request, response, pathname) {
+  if (request.method === 'GET' && pathname === '/api/config') {
+    return send(response, 200, { gitAutomationEnabled });
+  }
+
   if (request.method === 'GET' && pathname === '/api/tree') {
     return send(response, 200, { entries: await walk(root) });
   }
@@ -152,7 +157,7 @@ async function handleApi(request, response, pathname) {
     await fs.mkdir(path.dirname(targetFile), { recursive: true });
     if (currentFile !== targetFile) await fs.rename(currentFile, targetFile);
     await fs.writeFile(targetFile, content, 'utf8');
-    await git(['add', '-A', '--', relativePath, nextRelativePath]);
+    if (gitAutomationEnabled) await git(['add', '-A', '--', relativePath, nextRelativePath]);
     return send(response, 200, { path: nextRelativePath });
   }
 
@@ -164,19 +169,22 @@ async function handleApi(request, response, pathname) {
     }
     const targetFile = safeRelativePath(relativePath);
     await fs.unlink(targetFile);
-    await git(['add', '-A', '--', relativePath]);
+    if (gitAutomationEnabled) await git(['add', '-A', '--', relativePath]);
     return send(response, 200, { path: relativePath });
   }
 
   if (request.method === 'POST' && pathname === '/api/git/stage') {
+    if (!gitAutomationEnabled) return send(response, 503, { error: 'Git automation is disabled.' });
     const data = await readJson(request);
     const file = String(data.path || '');
+    if (!file.trim()) return send(response, 400, { error: 'A file path is required.' });
     safeRelativePath(file);
     await git(['add', '--', file]);
     return send(response, 200, { message: `Staged ${file}` });
   }
 
   if (request.method === 'POST' && pathname === '/api/git/commit') {
+    if (!gitAutomationEnabled) return send(response, 503, { error: 'Git automation is disabled.' });
     const data = await readJson(request);
     const message = String(data.message || '').trim();
     if (!message) return send(response, 400, { error: 'Commit message is required.' });

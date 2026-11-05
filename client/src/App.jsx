@@ -177,18 +177,34 @@ function App() {
       body: JSON.stringify(payload),
     });
     const saved = await response.json();
-    await fetch("/api/git/stage", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ path: saved.path }),
-    });
-    await fetch("/api/git/commit", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        message: `${editing ? "Update" : "Solve"}: ${form.name}`,
-      }),
-    });
+    if (!response.ok) {
+      window.alert(saved.error || "Unable to save this problem.");
+      return;
+    }
+    const config = await fetch("/api/config").then((result) => result.json());
+    if (config.gitAutomationEnabled) {
+      const stagedResponse = await fetch("/api/git/stage", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ path: saved.path }),
+      });
+      if (!stagedResponse.ok) {
+        const result = await stagedResponse.json();
+        window.alert(`Problem saved, but Git staging failed: ${result.error || "Unknown error."}`);
+      } else {
+        const commitResponse = await fetch("/api/git/commit", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            message: `${editing ? "Update" : "Solve"}: ${form.name}`,
+          }),
+        });
+        if (!commitResponse.ok) {
+          const result = await commitResponse.json();
+          window.alert(`Problem saved and staged, but Git commit failed: ${result.error || "Unknown error."}`);
+        }
+      }
+    }
     setFormOpen(false);
     const nextEntries = await loadEntries();
     const refreshed = nextEntries.find((entry) => entry.path === saved.path);
@@ -231,8 +247,20 @@ function App() {
     });
   const deleteProblem = async () => {
     if (!selected || !window.confirm(`Delete ${selected.name.replace(/\.md$/i, "")}? This cannot be undone.`)) return;
-    await fetch("/api/problems", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: selected.path }) });
-    await fetch("/api/git/commit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: `Delete: ${selected.name.replace(/\.md$/i, "")}` }) });
+    const response = await fetch("/api/problems", { method: "DELETE", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ path: selected.path }) });
+    const result = await response.json();
+    if (!response.ok) {
+      window.alert(result.error || "Unable to delete this problem.");
+      return;
+    }
+    const config = await fetch("/api/config").then((result) => result.json());
+    if (config.gitAutomationEnabled) {
+      const commitResponse = await fetch("/api/git/commit", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ message: `Delete: ${selected.name.replace(/\.md$/i, "")}` }) });
+      if (!commitResponse.ok) {
+        const commitResult = await commitResponse.json();
+        window.alert(`Problem deleted, but Git commit failed: ${commitResult.error || "Unknown error."}`);
+      }
+    }
     setSelected(null);
     await loadEntries();
   };
